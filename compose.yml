@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: ballard
+      POSTGRES_PASSWORD: ballard
+      POSTGRES_DB: ballard_trucks
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+
+volumes:
+  db-data:
