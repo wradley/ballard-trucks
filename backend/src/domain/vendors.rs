@@ -24,7 +24,7 @@ impl TryFrom<VendorRow> for Vendor {
         }
 
         Ok(Vendor {
-            id: value.id.to_string(),
+            id: value.id,
             name: value.name,
             website: value.website,
         })
@@ -52,7 +52,6 @@ impl TryFrom<Vec<VendorRow>> for Vendors {
 mod tests {
     use super::*;
     use std::sync::Mutex;
-    use uuid::Uuid;
 
     struct MockVendorRepo {
         rows: Mutex<Option<Vec<VendorRow>>>,
@@ -60,17 +59,20 @@ mod tests {
 
     impl VendorRepo for MockVendorRepo {
         async fn get_vendors(&self) -> anyhow::Result<Vec<VendorRow>> {
-            Ok(self.rows.lock().expect("lock poisoned").take().unwrap_or_default())
+            Ok(self
+                .rows
+                .lock()
+                .expect("lock poisoned")
+                .take()
+                .unwrap_or_default())
         }
     }
 
     fn sample_vendor_row(name: &str) -> VendorRow {
         VendorRow {
-            id: Uuid::nil(),
+            id: "00000000-0000-0000-0000-000000000000".to_string(),
             name: name.to_string(),
-            notes: None,
             website: Some("https://example.com".to_string()),
-            menu: None,
         }
     }
 
@@ -83,7 +85,7 @@ mod tests {
         let result = get_vendors(&repo).await.expect("valid result");
         assert_eq!(result.vendors.len(), 1);
         let first = &result.vendors[0];
-        assert_eq!(first.id, Uuid::nil().to_string());
+        assert_eq!(first.id, "00000000-0000-0000-0000-000000000000");
         assert_eq!(first.name, "El Pirata Tortas Y Burritos");
     }
 

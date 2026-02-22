@@ -3,7 +3,7 @@ info:
   title: Ballard Trucks API
   version: 0.1.0
   description: |
-    Phase 1/2 backend API contract.
+    Phase 1/2 read-only backend API contract.
     All schedule query windows are UTC and hour-bucketed.
 servers:
   - url: http://localhost:8080
