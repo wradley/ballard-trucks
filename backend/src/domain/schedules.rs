@@ -1,8 +1,6 @@
 use crate::db::{ScheduleRepo, ScheduleRow};
 use anyhow::anyhow;
 use serde::Serialize;
-use std::ops::Bound;
-use uuid::Uuid;
 
 pub async fn get_schedules<R: ScheduleRepo>(
     db: &R,
@@ -17,9 +15,9 @@ pub async fn get_schedules<R: ScheduleRepo>(
 #[derive(Serialize)]
 pub struct Schedule {
     brewery_name: String,
-    brewery_id: Uuid,
+    brewery_id: String,
     vendor_name: String,
-    vendor_id: Uuid,
+    vendor_id: String,
     start_at: String,
     end_at: String,
     updated_at: String,
@@ -33,29 +31,17 @@ impl TryFrom<ScheduleRow> for Schedule {
             return Err("brewery name is empty");
         }
 
-        if value.food_vendor_name.is_empty() {
+        if value.vendor_name.is_empty() {
             return Err("vendor name is empty");
         }
-
-        let open_hours = value.open_hours;
-
-        let start_at = match open_hours.start {
-            Bound::Included(ts) | Bound::Excluded(ts) => ts.to_rfc3339(),
-            Bound::Unbounded => return Err("schedule open_hours start is unbounded"),
-        };
-
-        let end_at = match open_hours.end {
-            Bound::Included(ts) | Bound::Excluded(ts) => ts.to_rfc3339(),
-            Bound::Unbounded => return Err("schedule open_hours end is unbounded"),
-        };
 
         Ok(Schedule {
             brewery_name: value.brewery_name,
             brewery_id: value.brewery_id,
-            vendor_name: value.food_vendor_name,
-            vendor_id: value.food_vendor_id,
-            start_at,
-            end_at,
+            vendor_name: value.vendor_name,
+            vendor_id: value.vendor_id,
+            start_at: value.start_at.to_rfc3339(),
+            end_at: value.end_at.to_rfc3339(),
             updated_at: value.updated_at.to_rfc3339(),
         })
     }
@@ -81,7 +67,6 @@ impl TryFrom<Vec<ScheduleRow>> for VendorSchedules {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlx::postgres::types::PgRange;
     use sqlx::types::chrono::{TimeZone, Utc};
     use std::sync::Mutex;
 
@@ -95,7 +80,12 @@ mod tests {
             _start: jiff::Timestamp,
             _duration_hours: u64,
         ) -> anyhow::Result<Vec<ScheduleRow>> {
-            Ok(self.rows.lock().expect("lock poisoned").take().unwrap_or_default())
+            Ok(self
+                .rows
+                .lock()
+                .expect("lock poisoned")
+                .take()
+                .unwrap_or_default())
         }
     }
 
@@ -114,16 +104,12 @@ mod tests {
             .expect("valid datetime");
 
         ScheduleRow {
-            id: Uuid::nil(),
-            brewery_id: Uuid::nil(),
+            brewery_id: "00000000-0000-0000-0000-000000000001".to_string(),
             brewery_name: brewery_name.to_string(),
-            food_vendor_id: Uuid::nil(),
-            food_vendor_name: vendor_name.to_string(),
-            open_hours: PgRange {
-                start: Bound::Included(start),
-                end: Bound::Excluded(end),
-            },
-            source: "seed".to_string(),
+            vendor_id: "00000000-0000-0000-0000-000000000002".to_string(),
+            vendor_name: vendor_name.to_string(),
+            start_at: start,
+            end_at: end,
             updated_at,
         }
     }

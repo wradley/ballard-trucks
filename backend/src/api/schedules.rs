@@ -1,16 +1,16 @@
-use crate::db::Db;
+use crate::app_state::AppState;
 use crate::domain;
 use crate::domain::VendorSchedules;
 use axum::body::Body;
 use axum::extract::rejection::QueryRejection;
-use axum::extract::{FromRequestParts, Query, Request, State};
-use axum::http::request::Parts;
+use axum::extract::{FromRequestParts, Query, State};
 use axum::http::StatusCode;
+use axum::http::request::Parts;
 use axum::response::{IntoResponse, Response};
 use axum::{Json, RequestPartsExt};
-use log::{error, warn};
 use serde::Deserialize;
 use thiserror::Error;
+use tracing::{error, warn};
 
 #[derive(Deserialize)]
 pub struct GetSchedulesQueryParams {
@@ -77,13 +77,13 @@ impl<S: Sync> FromRequestParts<S> for GetSchedulesInput {
 /// Handles schedule queries after query extraction/validation by `GetSchedulesInput`.
 #[axum::debug_handler]
 pub async fn get_schedules(
-    State(db): State<Db>,
+    State(state): State<AppState>,
     params: GetSchedulesInput,
 ) -> Result<Json<VendorSchedules>, StatusCode> {
-    match domain::get_schedules(&db, params.start_hour_utc, params.duration_hours).await {
+    match domain::get_schedules(&state.db, params.start_hour_utc, params.duration_hours).await {
         Ok(schedules) => Ok(Json(schedules)),
         Err(e) => {
-            error!("Failed to retrieve schedules: {}", e);
+            error!("Failed to retrieve schedules: {e:#}");
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
@@ -92,6 +92,7 @@ pub async fn get_schedules(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axum::http::Request;
 
     #[tokio::test]
     async fn test_missing_query_params() {

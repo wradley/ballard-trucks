@@ -1,16 +1,23 @@
 services:
-  db:
-    image: postgres:18
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     environment:
-      POSTGRES_USER: ballard
-      POSTGRES_PASSWORD: ballard
-      POSTGRES_DB: ballard_trucks
+      SQLITE_PATH: /data/ballard.sqlite
+      INGEST_API_KEY: ${INGEST_API_KEY:-local-dev-ingest-key}
     ports:
-      - "5432:5432"
+      - "8080:8080"
     volumes:
-      - db-data:/var/lib/postgresql
-      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-      - ./db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - app-data:/data
+
+  scrapers:
+    build:
+      context: .
+      dockerfile: scrapers/Dockerfile
+    environment:
+      BACKEND_INGEST_URL: http://backend:8080
+      INGEST_API_KEY: ${INGEST_API_KEY:-local-dev-ingest-key}
 
 volumes:
-  db-data:
+  app-data:

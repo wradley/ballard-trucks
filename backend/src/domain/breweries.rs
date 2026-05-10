@@ -27,7 +27,7 @@ impl TryFrom<BreweryRow> for Brewery {
         }
 
         Ok(Brewery {
-            id: value.id.to_string(),
+            id: value.id,
             name: value.name,
             address: value.address,
             lat: value.lat,
@@ -58,7 +58,6 @@ impl TryFrom<Vec<BreweryRow>> for Breweries {
 mod tests {
     use super::*;
     use std::sync::Mutex;
-    use uuid::Uuid;
 
     struct MockBreweryRepo {
         rows: Mutex<Option<Vec<BreweryRow>>>,
@@ -66,21 +65,28 @@ mod tests {
 
     impl BreweryRepo for MockBreweryRepo {
         async fn get_breweries(&self) -> anyhow::Result<Vec<BreweryRow>> {
-            Ok(self.rows.lock().expect("lock poisoned").take().unwrap_or_default())
+            Ok(self
+                .rows
+                .lock()
+                .expect("lock poisoned")
+                .take()
+                .unwrap_or_default())
+        }
+
+        async fn brewery_exists(&self, brewery_id: &str) -> anyhow::Result<bool> {
+            let _ = brewery_id;
+            Ok(true)
         }
     }
 
     fn sample_brewery_row(name: &str) -> BreweryRow {
         BreweryRow {
-            id: Uuid::nil(),
+            id: "00000000-0000-0000-0000-000000000000".to_string(),
             name: name.to_string(),
-            notes: None,
             website: Some("https://example.com".to_string()),
             address: Some("123 Ballard Ave".to_string()),
             lat: Some(47.6665),
             lng: Some(-122.3711),
-            drink_menu: None,
-            food_schedule: None,
         }
     }
 
@@ -93,7 +99,7 @@ mod tests {
         let result = get_breweries(&repo).await.expect("valid result");
         assert_eq!(result.breweries.len(), 1);
         let first = &result.breweries[0];
-        assert_eq!(first.id, Uuid::nil().to_string());
+        assert_eq!(first.id, "00000000-0000-0000-0000-000000000000");
         assert_eq!(first.name, "Stoup Brewing");
     }
 

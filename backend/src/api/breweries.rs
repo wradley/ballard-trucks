@@ -1,17 +1,17 @@
-use crate::db::Db;
+use crate::app_state::AppState;
 use crate::domain;
 use crate::domain::Breweries;
+use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::Json;
-use log::error;
+use tracing::error;
 
 #[axum::debug_handler]
-pub async fn get_breweries(State(db): State<Db>) -> Result<Json<Breweries>, StatusCode> {
-    match domain::get_breweries(&db).await {
+pub async fn get_breweries(State(state): State<AppState>) -> Result<Json<Breweries>, StatusCode> {
+    match domain::get_breweries(&state.db).await {
         Ok(breweries) => Ok(Json(breweries)),
         Err(e) => {
-            error!("Failed to retrieve breweries: {}", e);
+            error!("Failed to retrieve breweries: {e:#}");
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
